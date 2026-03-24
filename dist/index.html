@@ -6,164 +6,427 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>タスクバスター</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     :root {
-      --bg: #0a0a1a; --panel: #12122a; --border: #3a3a6a;
-      --accent: #ffdd00; --accent-dim: #a08800;
-      --red: #ff4444; --green: #44ff88; --text: #e0e0ff; --text-dim: #6060a0;
-      --high: #ff4444; --mid: #ffaa00; --low: #44aaff;
+      --bg: #070714;
+      --panel: #0e0e2a;
+      --panel2: #161636;
+      --border: #2a2a5a;
+      --accent: #ffe000;
+      --accent2: #ff8c00;
+      --red: #ff3355;
+      --green: #00ff88;
+      --blue: #00aaff;
+      --purple: #cc44ff;
+      --text: #c8c8ff;
+      --text-dim: #4a4a8a;
+      --high: #ff3355;
+      --mid: #ff8c00;
+      --low: #00aaff;
+      --glow-y: 0 0 8px #ffe000, 0 0 20px #ff8c0066;
+      --glow-g: 0 0 8px #00ff88, 0 0 20px #00ff8844;
+      --glow-r: 0 0 8px #ff3355, 0 0 20px #ff335544;
     }
-    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'Courier New', monospace; overflow: hidden; }
-    #app { height: 100%; display: flex; flex-direction: column; }
-    .header { background: var(--panel); border-bottom: 3px solid var(--accent); padding: 50px 16px 12px; flex-shrink: 0; }
-    .header-title { color: var(--accent); font-size: 20px; font-weight: bold; letter-spacing: 2px; }
-    .header-sub { color: var(--text-dim); font-size: 11px; margin-top: 2px; }
-    .back-btn { color: var(--accent); font-size: 14px; margin-bottom: 6px; cursor: pointer; display: inline-block; }
-    .filter-row { display: flex; gap: 8px; padding: 10px 12px; flex-shrink: 0; overflow-x: auto; }
-    .filter-btn { padding: 6px 12px; border: 2px solid var(--border); border-radius: 4px; background: transparent; color: var(--text-dim); font-size: 12px; font-family: 'Courier New', monospace; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
-    .filter-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
-    .task-list { flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 100px; }
-    .task-card { background: var(--panel); border: 2px solid var(--border); border-radius: 4px; padding: 12px; margin-bottom: 10px; }
-    .priority-badge { display: inline-block; padding: 2px 8px; border-radius: 2px; font-size: 11px; font-weight: bold; color: #000; margin-bottom: 6px; }
-    .task-text { color: var(--text); font-size: 15px; line-height: 1.5; margin-bottom: 10px; }
+    html, body {
+      height: 100%; background: var(--bg); color: var(--text);
+      font-family: 'Press Start 2P', monospace; overflow: hidden;
+      font-size: 10px;
+    }
+    #app { height: 100%; display: flex; flex-direction: column; position: relative; }
+
+    /* スキャンライン演出 */
+    #app::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    }
+
+    /* ヘッダー */
+    .header {
+      background: var(--panel);
+      border-bottom: 3px solid var(--accent);
+      padding: 48px 16px 14px;
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, #1a1a4a 0%, transparent 60%);
+    }
+    .header-title {
+      color: var(--accent);
+      font-size: 16px;
+      text-shadow: var(--glow-y);
+      letter-spacing: 1px;
+      position: relative;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .header-sub {
+      color: var(--text-dim); font-size: 8px; margin-top: 8px; position: relative;
+    }
+    .back-btn {
+      color: var(--accent); font-size: 9px; margin-bottom: 8px;
+      cursor: pointer; display: inline-block;
+      text-shadow: var(--glow-y);
+    }
+
+    /* フィルター */
+    .filter-row {
+      display: flex; gap: 6px; padding: 10px 12px;
+      flex-shrink: 0; overflow-x: auto; background: var(--panel2);
+      border-bottom: 2px solid var(--border);
+    }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .filter-btn {
+      padding: 8px 12px; border: 2px solid var(--border); border-radius: 3px;
+      background: transparent; color: var(--text-dim); font-size: 8px;
+      font-family: 'Press Start 2P', monospace; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0; transition: all 0.15s;
+    }
+    .filter-btn.active {
+      border-color: var(--accent); color: var(--accent);
+      background: rgba(255,224,0,0.08);
+      text-shadow: var(--glow-y);
+      box-shadow: 0 0 8px rgba(255,224,0,0.3);
+    }
+
+    /* タスクリスト */
+    .task-list {
+      flex: 1; overflow-y: auto; padding: 12px; padding-bottom: 110px;
+      background: var(--bg);
+    }
+    .task-list::-webkit-scrollbar { width: 4px; }
+    .task-list::-webkit-scrollbar-track { background: var(--bg); }
+    .task-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .task-card {
+      background: var(--panel);
+      border: 2px solid var(--border);
+      border-radius: 4px; padding: 14px; margin-bottom: 10px;
+      position: relative; overflow: hidden;
+      transition: border-color 0.2s;
+    }
+    .task-card::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+    }
+    .task-card.p-high::before { background: var(--high); box-shadow: var(--glow-r); }
+    .task-card.p-mid::before { background: var(--mid); box-shadow: 0 0 8px var(--mid); }
+    .task-card.p-low::before { background: var(--low); box-shadow: 0 0 8px var(--low); }
+
+    .priority-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 8px; border-radius: 2px;
+      font-size: 7px; font-weight: bold; color: #000; margin-bottom: 10px;
+    }
+    .task-text {
+      color: var(--text); font-size: 9px; line-height: 2;
+      margin-bottom: 12px; font-family: 'Hiragino Sans', sans-serif;
+      font-weight: bold; word-break: break-all;
+    }
     .task-btns { display: flex; gap: 8px; }
-    .clear-btn { flex: 1; background: var(--green); padding: 10px; border-radius: 3px; text-align: center; font-weight: bold; font-size: 14px; color: #000; font-family: 'Courier New', monospace; cursor: pointer; border: none; }
-    .delete-btn { background: var(--panel); border: 2px solid var(--red); padding: 10px 14px; border-radius: 3px; color: var(--red); font-weight: bold; font-size: 14px; cursor: pointer; font-family: 'Courier New', monospace; }
-    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: var(--text-dim); text-align: center; font-size: 14px; line-height: 2; }
-    .fab { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #000; font-weight: bold; font-size: 16px; padding: 16px 30px; border-radius: 4px; border: none; cursor: pointer; font-family: 'Courier New', monospace; letter-spacing: 1px; box-shadow: 0 0 20px rgba(255,221,0,0.5); }
-    #record-screen { display: none; flex-direction: column; height: 100%; overflow-y: auto; }
-    .mascot-area { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 20px 16px; }
-    .mascot-speech { background: var(--panel); border: 2px solid var(--border); border-radius: 4px; padding: 10px; font-size: 14px; line-height: 1.6; max-width: 140px; }
-    .mic-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 120px; height: 120px; border-radius: 60px; border: 4px solid var(--accent); background: var(--panel); margin: 0 auto 16px; cursor: pointer; font-family: 'Courier New', monospace; }
-    .mic-btn.listening { border-color: var(--red); background: #2a0a0a; }
-    .mic-icon { font-size: 36px; }
-    .mic-label { color: var(--text); font-size: 11px; margin-top: 4px; }
-    .section-label { color: var(--accent-dim); font-size: 12px; margin-bottom: 6px; letter-spacing: 1px; padding: 0 16px; }
-    textarea { display: block; width: calc(100% - 32px); margin: 0 16px 20px; background: var(--panel); border: 2px solid var(--border); border-radius: 4px; color: var(--text); padding: 12px; font-size: 15px; min-height: 100px; font-family: 'Courier New', monospace; resize: none; }
-    textarea::placeholder { color: var(--text-dim); }
-    .priority-row { display: flex; gap: 10px; padding: 0 16px; margin-bottom: 24px; }
-    .priority-opt { flex: 1; padding: 12px; border-radius: 4px; border: 2px solid var(--border); background: transparent; color: var(--text); font-size: 13px; font-weight: bold; font-family: 'Courier New', monospace; cursor: pointer; text-align: center; }
-    .priority-opt.selected-high { background: var(--high); border-color: var(--high); color: #000; }
-    .priority-opt.selected-mid { background: var(--mid); border-color: var(--mid); color: #000; }
-    .priority-opt.selected-low { background: var(--low); border-color: var(--low); color: #000; }
-    .add-btn { display: block; width: calc(100% - 32px); margin: 0 16px; background: var(--accent); color: #000; font-weight: bold; font-size: 16px; padding: 18px; border-radius: 4px; border: none; cursor: pointer; font-family: 'Courier New', monospace; letter-spacing: 1px; }
-    .add-btn:disabled { background: var(--accent-dim); opacity: 0.5; }
-    #clear-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; z-index: 100; }
+    .clear-btn {
+      flex: 1; background: var(--green); padding: 12px 8px; border-radius: 3px;
+      text-align: center; font-size: 9px; color: #000;
+      font-family: 'Press Start 2P', monospace; cursor: pointer; border: none;
+      box-shadow: 0 4px 0 #009944, var(--glow-g);
+      transition: transform 0.1s, box-shadow 0.1s;
+      active-transform: translateY(2px);
+    }
+    .clear-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #009944; }
+    .delete-btn {
+      background: var(--panel2); border: 2px solid var(--red);
+      padding: 12px 14px; border-radius: 3px; color: var(--red);
+      font-size: 12px; cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+      box-shadow: 0 4px 0 #880022;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .delete-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #880022; }
+
+    /* 空表示 */
+    .empty {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 100%; color: var(--text-dim);
+      text-align: center; font-size: 8px; line-height: 3; gap: 4px;
+    }
+
+    /* FAB */
+    .fab {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      background: var(--accent); color: #000; font-size: 10px;
+      padding: 16px 24px; border-radius: 4px; border: none; cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+      box-shadow: 0 5px 0 #996600, var(--glow-y);
+      transition: transform 0.1s, box-shadow 0.1s;
+      white-space: nowrap;
+    }
+    .fab:active { transform: translateX(-50%) translateY(4px); box-shadow: 0 1px 0 #996600; }
+
+    /* 録音画面 */
+    #record-screen { display: none; flex-direction: column; height: 100%; overflow-y: auto; background: var(--bg); }
+    #record-screen::-webkit-scrollbar { display: none; }
+
+    .mascot-area {
+      display: flex; align-items: center; justify-content: center;
+      gap: 20px; padding: 20px 16px 10px;
+    }
+    .speech-bubble {
+      background: var(--panel2); border: 2px solid var(--accent);
+      border-radius: 8px; padding: 12px 14px; font-size: 8px;
+      line-height: 2.2; max-width: 150px; position: relative;
+      color: var(--text);
+      box-shadow: 0 0 10px rgba(255,224,0,0.2);
+    }
+    .speech-bubble::before {
+      content: ''; position: absolute; left: -10px; top: 50%;
+      transform: translateY(-50%);
+      border: 6px solid transparent;
+      border-right-color: var(--accent);
+    }
+
+    .mic-wrap { display: flex; justify-content: center; margin: 10px 0 16px; }
+    .mic-btn {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; width: 130px; height: 130px; border-radius: 65px;
+      border: 4px solid var(--accent); background: var(--panel);
+      cursor: pointer; font-family: 'Press Start 2P', monospace;
+      box-shadow: 0 0 20px rgba(255,224,0,0.3), inset 0 0 20px rgba(255,224,0,0.05);
+      transition: all 0.2s;
+    }
+    .mic-btn.listening {
+      border-color: var(--red); background: #1a0510;
+      box-shadow: 0 0 30px rgba(255,51,85,0.5), inset 0 0 20px rgba(255,51,85,0.1);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(255,51,85,0.5), inset 0 0 20px rgba(255,51,85,0.1); }
+      50% { box-shadow: 0 0 40px rgba(255,51,85,0.8), inset 0 0 30px rgba(255,51,85,0.2); }
+    }
+    .mic-icon { font-size: 40px; }
+    .mic-label { color: var(--text-dim); font-size: 7px; margin-top: 6px; text-align: center; }
+
+    .section-label {
+      color: var(--accent2); font-size: 7px; margin-bottom: 8px;
+      padding: 0 16px; letter-spacing: 1px;
+    }
+    textarea {
+      display: block; width: calc(100% - 32px); margin: 0 16px 20px;
+      background: var(--panel2); border: 2px solid var(--border); border-radius: 4px;
+      color: var(--text); padding: 14px; font-size: 13px; min-height: 90px;
+      font-family: 'Hiragino Sans', sans-serif; font-weight: bold;
+      resize: none; line-height: 1.6;
+    }
+    textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 8px rgba(255,224,0,0.2); }
+    textarea::placeholder { color: var(--text-dim); font-family: 'Hiragino Sans', sans-serif; }
+
+    .priority-row { display: flex; gap: 8px; padding: 0 16px; margin-bottom: 20px; }
+    .priority-opt {
+      flex: 1; padding: 12px 4px; border-radius: 4px;
+      border: 2px solid var(--border); background: var(--panel);
+      color: var(--text-dim); font-size: 7px;
+      font-family: 'Press Start 2P', monospace; cursor: pointer;
+      text-align: center; transition: all 0.15s;
+      box-shadow: 0 3px 0 #111122;
+    }
+    .priority-opt:active { transform: translateY(2px); box-shadow: 0 1px 0 #111122; }
+    .priority-opt.selected-high { background: var(--high); border-color: var(--high); color: #fff; box-shadow: 0 3px 0 #880022, var(--glow-r); }
+    .priority-opt.selected-mid { background: var(--mid); border-color: var(--mid); color: #000; box-shadow: 0 3px 0 #884400; }
+    .priority-opt.selected-low { background: var(--low); border-color: var(--low); color: #fff; box-shadow: 0 3px 0 #005588; }
+
+    .add-btn {
+      display: block; width: calc(100% - 32px); margin: 0 16px;
+      background: linear-gradient(180deg, #ffe844 0%, #ffb800 100%);
+      color: #000; font-size: 10px;
+      padding: 18px; border-radius: 4px; border: none; cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+      box-shadow: 0 5px 0 #885500, var(--glow-y);
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .add-btn:active { transform: translateY(4px); box-shadow: 0 1px 0 #885500; }
+    .add-btn:disabled { background: #333355; color: var(--text-dim); box-shadow: 0 3px 0 #111122; pointer-events: none; }
+
+    /* ───── クリアモーダル ───── */
+    #clear-modal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,10,0.92); align-items: center;
+      justify-content: center; z-index: 100;
+    }
     #clear-modal.show { display: flex; }
-    .clear-box { background: var(--panel); border: 4px solid var(--accent); border-radius: 6px; padding: 28px; text-align: center; width: 85%; max-width: 360px; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-    @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
-    .clear-stars { color: var(--accent); font-size: 26px; margin-bottom: 6px; letter-spacing: 8px; }
-    .clear-title { color: var(--accent); font-size: 24px; font-weight: bold; letter-spacing: 2px; line-height: 1.4; }
-    .clear-task { color: var(--text); font-size: 14px; margin-top: 10px; line-height: 1.6; }
-    .clear-sub { color: var(--green); font-size: 18px; font-weight: bold; margin-top: 4px; }
-    .clear-next-btn { margin-top: 20px; background: var(--accent); color: #000; font-weight: bold; font-size: 15px; padding: 14px 32px; border-radius: 4px; border: none; cursor: pointer; font-family: 'Courier New', monospace; letter-spacing: 1px; }
+    .clear-box {
+      background: var(--panel);
+      border: 4px solid var(--accent);
+      border-radius: 6px; padding: 28px 20px;
+      text-align: center; width: 88%; max-width: 380px;
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+      box-shadow: 0 0 40px rgba(255,224,0,0.4), inset 0 0 40px rgba(255,224,0,0.03);
+      position: relative; overflow: hidden;
+    }
+    .clear-box::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,224,0,0.015) 10px, rgba(255,224,0,0.015) 20px);
+    }
+    @keyframes popIn { from { transform: scale(0) rotate(-5deg); opacity: 0; } to { transform: scale(1) rotate(0deg); opacity: 1; } }
+
+    .clear-stars { color: var(--accent); font-size: 18px; margin-bottom: 10px; animation: starSpin 0.5s 0.3s both; letter-spacing: 6px; }
+    @keyframes starSpin { from { transform: scale(0) rotate(-180deg); } to { transform: scale(1) rotate(0); } }
+    .clear-title { color: var(--accent); font-size: 16px; line-height: 1.8; text-shadow: var(--glow-y); }
+    .clear-mascot-wrap { margin: 16px auto; position: relative; display: inline-block; }
+    .clear-task { color: var(--text); font-size: 10px; margin-top: 12px; line-height: 1.8; font-family: 'Hiragino Sans', sans-serif; font-weight: bold; word-break: break-all; }
+    .clear-sub { color: var(--green); font-size: 12px; margin-top: 6px; text-shadow: var(--glow-g); }
+    .clear-next-btn {
+      margin-top: 20px; background: linear-gradient(180deg, #ffe844 0%, #ffb800 100%);
+      color: #000; font-size: 10px; padding: 14px 28px;
+      border-radius: 4px; border: none; cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+      box-shadow: 0 4px 0 #885500, var(--glow-y);
+    }
+    .clear-next-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #885500; }
+
+    /* パーティクル */
+    .particle {
+      position: fixed; pointer-events: none; z-index: 101;
+      font-size: 20px; animation: fly 1s ease-out forwards;
+    }
+    @keyframes fly {
+      0% { transform: translate(0,0) scale(1); opacity: 1; }
+      100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+    }
+
+    canvas { display: block; image-rendering: pixelated; }
   </style>
 </head>
 <body>
 <div id="app">
+
+  <!-- ── タスク一覧 ── -->
   <div id="list-screen">
     <div class="header">
-      <div class="header-title">⚔ タスクバスター</div>
-      <div class="header-sub" id="task-count">残りミッション: 0</div>
+      <div class="header-title">⚔ TASK BUSTER</div>
+      <div class="header-sub" id="task-count">▶ MISSIONS: 0</div>
     </div>
     <div class="filter-row">
-      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">全部</button>
-      <button class="filter-btn" data-filter="high" onclick="setFilter('high')">★ 高</button>
-      <button class="filter-btn" data-filter="mid" onclick="setFilter('mid')">◆ 中</button>
-      <button class="filter-btn" data-filter="low" onclick="setFilter('low')">▲ 低</button>
+      <button class="filter-btn active" data-filter="all" onclick="setFilter('all')">ALL</button>
+      <button class="filter-btn" data-filter="high" onclick="setFilter('high')">★ HIGH</button>
+      <button class="filter-btn" data-filter="mid" onclick="setFilter('mid')">◆ MID</button>
+      <button class="filter-btn" data-filter="low" onclick="setFilter('low')">▲ LOW</button>
     </div>
     <div class="task-list" id="task-list"></div>
-    <button class="fab" onclick="showRecord()">🎙 録音する</button>
+    <button class="fab" onclick="showRecord()">🎙 REC</button>
   </div>
 
+  <!-- ── 録音画面 ── -->
   <div id="record-screen">
     <div class="header">
-      <span class="back-btn" onclick="hideRecord()">◀ もどる</span>
-      <div class="header-title">🎙 アイデア録音</div>
+      <span class="back-btn" onclick="hideRecord()">◀ BACK</span>
+      <div class="header-title">🎙 VOICE INPUT</div>
     </div>
     <div class="mascot-area">
-      <canvas id="mascot-canvas" width="80" height="96"></canvas>
-      <div class="mascot-speech" id="mascot-speech">マイクを押して<br>アイデアを話してね</div>
+      <canvas id="mascot-canvas" width="80" height="96" style="flex-shrink:0;"></canvas>
+      <div class="speech-bubble" id="mascot-speech">マイクを<br>押してね！</div>
     </div>
-    <button class="mic-btn" id="mic-btn" onclick="toggleMic()">
-      <span class="mic-icon" id="mic-icon">🎙</span>
-      <span class="mic-label" id="mic-label">録音スタート</span>
-    </button>
-    <div class="section-label">▶ 内容（修正できます）</div>
+    <div class="mic-wrap">
+      <button class="mic-btn" id="mic-btn" onclick="toggleMic()">
+        <span class="mic-icon" id="mic-icon">🎙</span>
+        <span class="mic-label" id="mic-label">TAP TO REC</span>
+      </button>
+    </div>
+    <div class="section-label">▶ CONTENT</div>
     <textarea id="transcript" placeholder="ここにアイデアが入ります..."></textarea>
-    <div class="section-label">▶ 優先度</div>
+    <div class="section-label">▶ PRIORITY</div>
     <div class="priority-row">
-      <button class="priority-opt" data-p="high" onclick="setPriority('high')">★ 高</button>
-      <button class="priority-opt selected-mid" data-p="mid" onclick="setPriority('mid')">◆ 中</button>
-      <button class="priority-opt" data-p="low" onclick="setPriority('low')">▲ 低</button>
+      <button class="priority-opt" data-p="high" onclick="setPriority('high')">★<br>HIGH</button>
+      <button class="priority-opt selected-mid" data-p="mid" onclick="setPriority('mid')">◆<br>MID</button>
+      <button class="priority-opt" data-p="low" onclick="setPriority('low')">▲<br>LOW</button>
     </div>
-    <button class="add-btn" id="add-btn" onclick="addTask()" disabled>⚔ ミッション追加！</button>
+    <button class="add-btn" id="add-btn" onclick="addTask()" disabled>⚔ ADD MISSION!</button>
     <div style="height:40px"></div>
   </div>
 </div>
 
+<!-- ── クリアモーダル ── -->
 <div id="clear-modal">
   <div class="clear-box">
-    <div class="clear-stars">★ ★ ★</div>
-    <div class="clear-title">MISSION CLEAR!<br>ミッションクリア！</div>
-    <canvas id="clear-mascot" width="120" height="144" style="margin:16px auto;display:block;"></canvas>
+    <div class="clear-stars">★★★</div>
+    <div class="clear-title">MISSION<br>CLEAR!!</div>
+    <div class="clear-mascot-wrap">
+      <canvas id="clear-mascot" width="120" height="144"></canvas>
+    </div>
     <div class="clear-task" id="clear-task-name"></div>
     <div class="clear-sub">をぶっ倒した！</div>
-    <button class="clear-next-btn" onclick="closeClear()">▶ つぎへ</button>
+    <button class="clear-next-btn" onclick="closeClear()">▶ NEXT</button>
   </div>
 </div>
 
 <script>
+// ─── データ ───
 let tasks = JSON.parse(localStorage.getItem('taskbuster_tasks') || '[]');
 let currentFilter = 'all';
 let currentPriority = 'mid';
 let recognition = null;
 let isListening = false;
 let animFrame = null;
-let bounceY = 0, bounceDir = 1, blinkCount = 0, blinkOpen = true;
-let isTalking = false;
+let bounceY = 0, bounceDir = 1, blinkCount = 0, blinkOpen = true, isTalking = false;
 
-const PRIORITY_ORDER = { high: 0, mid: 1, low: 2 };
-const PRIORITY_COLORS = { high: '#ff4444', mid: '#ffaa00', low: '#44aaff' };
-const PRIORITY_LABELS = { high: '★ 高', mid: '◆ 中', low: '▲ 低' };
+const PORDER = { high:0, mid:1, low:2 };
+const PCOLOR = { high:'#ff3355', mid:'#ff8c00', low:'#00aaff' };
+const PLABEL = { high:'★ HIGH', mid:'◆ MID', low:'▲ LOW' };
 
-function saveTasks() { localStorage.setItem('taskbuster_tasks', JSON.stringify(tasks)); }
+function save() { localStorage.setItem('taskbuster_tasks', JSON.stringify(tasks)); }
 
+// ─── ピクセルキャラ描画 ───
 function drawMascot(canvas, scale, talking, cleared) {
   const ctx = canvas.getContext('2d');
-  const sz = 8 * scale;
+  const s = 8 * scale;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  const body = cleared ? '#44ff88' : '#ff9944';
-  const bg = '#0a0a1a';
-  function b(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x*sz,y*sz,w*sz,h*sz); }
+  const body = cleared ? '#00ff88' : '#ff9944';
+  const shadow = cleared ? '#009944' : '#aa4400';
+  const bg = '#070714';
+  function b(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x*s,y*s,w*s,h*s); }
+  // 影
+  b(1,1,8,1,shadow); b(0,2,10,6,shadow); b(1,8,8,1,shadow);
+  b(2,9,6,3,shadow); b(0,9,2,2,shadow); b(8,9,2,2,shadow);
+  b(2,12,2,1,shadow); b(6,12,2,1,shadow);
+  // 体
   b(1,0,8,1,body); b(0,1,10,6,body); b(1,7,8,1,body);
-  if(blinkOpen){ b(2,2,2,2,bg); b(6,2,2,2,bg); }
-  if(talking){ b(3,5,4,1,bg); b(2,5,1,2,bg); b(7,5,1,2,bg); b(3,6,4,1,bg); }
-  else if(cleared){ b(2,5,1,1,bg); b(3,6,4,1,bg); b(7,5,1,1,bg); }
-  else { b(3,5,4,1,bg); }
   b(2,8,6,3,body); b(0,8,2,2,body); b(8,8,2,2,body);
   b(2,11,2,1,body); b(6,11,2,1,body);
+  // 目
+  if(blinkOpen || cleared){
+    b(2,2,2,2,bg); b(6,2,2,2,bg);
+    // 目の光
+    ctx.fillStyle='#ffffff'; ctx.fillRect(2.5*s,2*s,0.5*s,0.5*s); ctx.fillRect(6.5*s,2*s,0.5*s,0.5*s);
+  } else {
+    b(2,3,2,0.5,bg); b(6,3,2,0.5,bg);
+  }
+  // 口
+  if(talking){ b(3,5,4,1,bg); b(2,5,1,2,bg); b(7,5,1,2,bg); b(3,6,4,1,bg); }
+  else if(cleared){ b(2,5,1,1,bg); b(3,6,4,1,bg); b(7,5,1,1,bg); b(3,5,1,1,bg); }
+  else { b(3,5,4,1,bg); }
+  // クリア時のほっぺ
+  if(cleared){ ctx.fillStyle='rgba(255,100,100,0.5)'; ctx.fillRect(0.5*s,4*s,1.5*s,1.5*s); ctx.fillRect(8*s,4*s,1.5*s,1.5*s); }
 }
 
 function animateMascot() {
   const canvas = document.getElementById('mascot-canvas');
   if (!canvas) return;
-  bounceY += bounceDir * 0.3;
-  if (bounceY > 6 || bounceY < 0) bounceDir *= -1;
+  bounceY += bounceDir * 0.25;
+  if (bounceY > 7 || bounceY < 0) bounceDir *= -1;
   canvas.style.transform = `translateY(${bounceY.toFixed(1)}px)`;
   blinkCount++;
-  if (blinkCount === 150) blinkOpen = false;
-  if (blinkCount > 160) { blinkOpen = true; blinkCount = 0; }
+  if (blinkCount === 180) blinkOpen = false;
+  if (blinkCount > 192) { blinkOpen = true; blinkCount = 0; }
   drawMascot(canvas, 1, isTalking, false);
   animFrame = requestAnimationFrame(animateMascot);
 }
 
+// ─── 画面切替 ───
 function showRecord() {
   document.getElementById('list-screen').style.display = 'none';
   const rs = document.getElementById('record-screen');
-  rs.style.display = 'flex';
-  rs.style.flexDirection = 'column';
+  rs.style.display = 'flex'; rs.style.flexDirection = 'column';
   if (animFrame) cancelAnimationFrame(animFrame);
   animateMascot();
 }
@@ -178,6 +441,7 @@ function hideRecord() {
   document.getElementById('add-btn').disabled = true;
 }
 
+// ─── 音声認識 ───
 function toggleMic() { isListening ? stopListening() : startListening(); }
 
 function startListening() {
@@ -207,10 +471,11 @@ function setMicState(on) {
   isListening = on; isTalking = on;
   document.getElementById('mic-btn').classList.toggle('listening', on);
   document.getElementById('mic-icon').textContent = on ? '⏹' : '🎙';
-  document.getElementById('mic-label').textContent = on ? '録音停止' : '録音スタート';
-  document.getElementById('mascot-speech').innerHTML = on ? 'きいてるよ！<br>しゃべって！' : 'マイクを押して<br>アイデアを話してね';
+  document.getElementById('mic-label').textContent = on ? 'TAP TO STOP' : 'TAP TO REC';
+  document.getElementById('mascot-speech').innerHTML = on ? 'はなして！\nきいてる！' : 'マイクを\n押してね！';
 }
 
+// ─── タスク操作 ───
 function setPriority(p) {
   currentPriority = p;
   document.querySelectorAll('.priority-opt').forEach(btn => {
@@ -218,24 +483,28 @@ function setPriority(p) {
   });
 }
 
+document.getElementById('transcript').addEventListener('input', (e) => {
+  document.getElementById('add-btn').disabled = !e.target.value.trim();
+});
+
 function addTask() {
   const text = document.getElementById('transcript').value.trim();
   if (!text) return;
   tasks.push({ id: Date.now().toString(), text, priority: currentPriority });
-  saveTasks(); hideRecord(); renderTasks();
+  save(); hideRecord(); renderTasks();
 }
 
 function completeTask(id) {
   const task = tasks.find(t => t.id === id);
   if (!task) return;
   tasks = tasks.filter(t => t.id !== id);
-  saveTasks(); renderTasks(); showClear(task.text);
+  save(); renderTasks(); showClear(task.text);
 }
 
 function deleteTask(id) {
   if (!confirm('このミッションを削除しますか？')) return;
   tasks = tasks.filter(t => t.id !== id);
-  saveTasks(); renderTasks();
+  save(); renderTasks();
 }
 
 function setFilter(f) {
@@ -244,41 +513,66 @@ function setFilter(f) {
   renderTasks();
 }
 
-function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function renderTasks() {
   const list = document.getElementById('task-list');
-  document.getElementById('task-count').textContent = `残りミッション: ${tasks.length}`;
+  document.getElementById('task-count').textContent = `▶ MISSIONS: ${tasks.length}`;
   const filtered = tasks
     .filter(t => currentFilter === 'all' || t.priority === currentFilter)
-    .sort((a,b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]);
+    .sort((a,b) => PORDER[a.priority] - PORDER[b.priority]);
   if (filtered.length === 0) {
-    list.innerHTML = `<div class="empty"><div style="font-size:40px;margin-bottom:12px">⚔</div><div>${tasks.length === 0 ? 'ミッションがないぞ！<br>録音ボタンで追加しよう' : 'このカテゴリは空だ！'}</div></div>`;
+    list.innerHTML = `<div class="empty">
+      <div style="font-size:36px;margin-bottom:16px">⚔</div>
+      <div>${tasks.length===0 ? 'NO MISSIONS!<br><br>REC ボタンで<br>追加しよう' : 'このカテゴリは<br>空だ！'}</div>
+    </div>`;
     return;
   }
   list.innerHTML = filtered.map(t => `
-    <div class="task-card">
-      <div class="priority-badge" style="background:${PRIORITY_COLORS[t.priority]}">${PRIORITY_LABELS[t.priority]}</div>
-      <div class="task-text">${escapeHtml(t.text)}</div>
+    <div class="task-card p-${t.priority}">
+      <div class="priority-badge" style="background:${PCOLOR[t.priority]}">${PLABEL[t.priority]}</div>
+      <div class="task-text">${esc(t.text)}</div>
       <div class="task-btns">
-        <button class="clear-btn" onclick="completeTask('${t.id}')">✓ クリア</button>
+        <button class="clear-btn" onclick="completeTask('${t.id}')">✓ CLEAR</button>
         <button class="delete-btn" onclick="deleteTask('${t.id}')">✕</button>
       </div>
     </div>`).join('');
 }
 
+// ─── クリア演出 ───
+function spawnParticles() {
+  const emojis = ['⭐','✨','💥','🎉','⚡','🌟'];
+  for (let i = 0; i < 16; i++) {
+    const el = document.createElement('div');
+    el.className = 'particle';
+    el.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    el.style.left = cx + 'px';
+    el.style.top = cy + 'px';
+    const angle = (i / 16) * Math.PI * 2;
+    const dist = 100 + Math.random() * 150;
+    el.style.setProperty('--tx', Math.cos(angle)*dist + 'px');
+    el.style.setProperty('--ty', Math.sin(angle)*dist + 'px');
+    el.style.animationDelay = (Math.random()*0.3) + 's';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 1500);
+  }
+}
+
 function showClear(name) {
   document.getElementById('clear-task-name').textContent = `「${name}」`;
   document.getElementById('clear-modal').classList.add('show');
+  spawnParticles();
   setTimeout(() => {
     const c = document.getElementById('clear-mascot');
-    blinkOpen = true;
-    if(c) drawMascot(c, 1.5, false, true);
+    if (c) { blinkOpen = true; drawMascot(c, 1.5, false, true); }
   }, 50);
 }
 
 function closeClear() { document.getElementById('clear-modal').classList.remove('show'); }
 
+// ─── 起動 ───
 renderTasks();
 </script>
 </body>
